@@ -1,0 +1,51 @@
+{% extends "index.html" %}
+
+{% block encabezado %}
+  {% include "encabezado.html" %}
+{% endblock %}
+
+{% block contenido %}
+  <div class="w-50" style="margin: 0 auto">
+    <form id="frmProducto" method="post" enctype="multipart/form-data" class="was-validated">
+      <div><h3 class="text-center fw-bold bg-danger text-white">EDITAR PRODUCTO</h3></div>
+      <div class="ab-3">
+        <label class="fw-bold" for="codigo">Código:</label>
+        <input type="number" name="codigo" id="codigo" class="form-codigo" value="{{ producto.codigo }}" required>
+      </div>
+      <div class="mb-3">
+        <label class="fw-bold" for="nombre">Nombre:</label>
+        <input type="text" name="nombre" id="nombre" class="form-control" value="{{ producto.nombre }}" required>
+      </div>
+      <div class="b-3">
+        <label class="fw-bold" for="precio">Precio:</label>
+        <input type="number" name="precio" id="precio" class="form-control" value="{{ producto.precio }}" required>
+      </div>
+      <div class="ab-3">
+        <label class="fw-bold" for="cbCategoria">Categoria:</label>
+        <select name="cbCategoria" id="cbCategoria" class="form-select" required>
+          <option value="">Seleccione</option>
+          {% for c in categorias %}
+            {% if c.id == producto.categoria.id %}
+              <option value="{{ c.id }}" selected>{{ c.nombre }}</option>
+            {% else %}
+              <option value="{{ c.id }}">{{ c.nombre }}</option>
+            {% endif %}
+          {% endfor %}
+        </select>
+      </div>
+      <div class="ub-3">
+        <label class="fw-bold" for="filefoto">Foto(jpg):</label>
+        <input type="file" name="filefoto" id="filefoto" onchange="visualizarfoto(event)" class="form-control" accept=".jpg">
+      </div>
+      <div class="b-3 text-center">
+        <img id="imagenProducto" src="../static/imagenes/{{ producto.id }}.jpg" width="100" height="100">
+      </div>
+      <div>
+        <button type="button" class="btn btn-success" onclick="editarProducto()">Editar</button>
+        <!--<button class="btn btn-success">Editar</button>-->
+        <a href="/listaProducto"><button type="button" class="btn btn-warning">Cancelar</button></a>
+      </div>
+      <input type="hidden" name="idProducto" id="idProducto" value="{{ producto.id }}">
+    </form>
+  </div>
+{% endblock %}

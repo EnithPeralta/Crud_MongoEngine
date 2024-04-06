@@ -1,0 +1,28 @@
+{% extends "index.html"%}
+{%block encabezado%}
+ {% include "encabezado.html"%}
+{% endblock%}
+{%block contenido%}
+    <div class="IniciarSesion">
+        <form action="/iniciarSesion" method="post" class="carta">
+            <h3>Start Of Section</h3>
+        <div class="cartaCentar">
+            <div>
+                <label for="usuario">User:</label>
+                <input type="text" name="usuario" id="usuario" class="" required>
+            </div>
+            <div>
+                <label for="password">Password:</label>
+                <input type="password" name="password" id="password" class="" required>
+            </div>
+            <div class="p-2">
+                <button class="btn btn-outline-primary" type="button" onclick="iniciarSesion()">Start</button>
+                <button class="btn btn-outline-danger">Cancel</button>
+            </div>
+        </div>
+        </form>
+    </div>
+{% endblock%}
+{%block piePagina %}
+    {% include 'piePagina.html'%}
+{%endblock%}
