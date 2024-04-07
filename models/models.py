@@ -19,3 +19,4 @@ class Productos(Document):
     precio = IntField()
     categoria = ReferenceField(Categorias)
     foto = StringField()
+

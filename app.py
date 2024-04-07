@@ -4,8 +4,8 @@ import os
 import threading
 from tkinter import Image
 from bson import ObjectId
-from flask import Flask, jsonify, redirect, request,render_template,session
-from mongoengine import connect
+from flask import Flask, jsonify, redirect, request,render_template,session, url_for,flash
+from mongoengine import connect,DoesNotExist
 import pymongo
 import yagmail
 from bson.errors import InvalidId
@@ -19,7 +19,6 @@ app.config['MONGODB_SETTINGS'] = {
 connect(**app.config['MONGODB_SETTINGS'])
 
 from models.models import Usuarios,Productos,Categorias
-
 
 @app.route('/')
 def inicio():
@@ -70,74 +69,59 @@ def enviarCorreo(email=None, destinatario=None, asunto=None, mensaje=None):
 
 @app.route('/home')
 def home():
-    listaProductos = Productos.objects.all()
-    listaP = []
-    for p in listaProductos:
-        categoria = Categorias.objects.get(id=p.categoria.id)
-        p.nombreCategoria = categoria.nombre
-        listaP.append(p)
-    return render_template('listaProducto.html', Productos=listaP)
-
-@app.route('/listaProductos')
-def listaProductos():
-    if "user" in session:
-        listaProductos = Productos.objects()
-        return render_template("listaProducto.html", productos=listaProductos)
-    else:
-        mensaje = "Debe primero ingresar con sus credenciales"
-        return render_template("home.html", mensaje=mensaje)
-
-
-@app.route('/vistaAgregarProducto')
-def vistaAgregarProducto():
-    if "user" in session:
-        listaCategorias = Categorias.objects()
-        return render_template("agregar.html", categorias=listaCategorias)
-    else:
-        mensaje = "Debe primero ingresar con sus credenciales"
-        return render_template("home.html", mensaje=mensaje)
-
-
-@app.route("/agregarProductoJson", methods=['GET','POST'])
-def agregarProductoJson():
-    mensaje = ""
-    estado = False
-    if "user" in session:
+    if 'user' in session:
         try:
-            datos = request.json
-            print(datos)
-            datosProducto = datos.get('producto')
-            print(datosProducto)
-            fotoBase64 = datos.get('foto')["foto"]
-
-            producto = Productos(**datosProducto)
-            print(producto.precio)
-
-            producto.save()
-
-            if producto.id:
-                rutaImagen = f"{os.path.join(app.config['UPLOAD_FOLDER'], str(producto.id))}.jpg"
-                fotoBase64 = fotoBase64[fotoBase64.index(',') + 1:]
-
-                fotoDecodificada = base64.b64decode(fotoBase64)
-
-                with open(rutaImagen, "wb") as f:
-                    f.write(fotoDecodificada)
-
-                mensaje = "Producto agregado correctamente"
-                estado = True
-            else:
-                mensaje = "Error al agregar el producto"
-                estado = False
+            listaProductos = Productos.objects.all()
+            listaP = []
+            for p in listaProductos:
+                try:
+                    categoria = Categorias.objects.get(id=p.categoria.id)
+                    p.nombreCategoria = categoria.nombre
+                    listaP.append(p)
+                except DoesNotExist:
+                    # Manejar el caso donde la categoría no existe
+                    p.nombreCategoria = 'Categoría no encontrada'
+                    listaP.append(p)
+            return render_template('listaProducto.html', Productos=listaP)
         except Exception as e:
-            print(e)
-            mensaje = "Error al agregar el producto"
-            estado = False
+            # Manejar otras excepciones generales
+            return render_template('error.html', error=str(e))
     else:
         mensaje = "Debe primero ingresar con sus credenciales"
+        return render_template("listaProducto.html", mensaje=mensaje)    
+    
+@app.route('/agregarProductoJson', methods=['GET', 'POST'])
+#Recibimos los datos del formulario del name
+def agregarProductoJson():
+    if request.method == 'POST':
+        codigo = request.form['codigo']
+        nombre = request.form['nombre']
+        precio = request.form['precio']
+        categoria = ObjectId(request.form['cbCategoria'])
+        foto = request.files['fileFoto']
 
-    return jsonify({"mensaje": mensaje, "estado": estado})
+        # Verificar si el código del producto ya existe en la base de datos
+        if Productos.objects(codigo=codigo).first():
+            flash('Ya existe un producto con ese código', 'error')
+            return redirect(url_for('agregarProductoJson'))
 
+        # Si el código no existe se guarda en la base de datos
+        producto = Productos(
+            codigo=codigo,
+            nombre=nombre,
+            precio=precio,
+            categoria=categoria,
+            foto=foto.filename
+        )
+        producto.save() #Esta es la instruccion que guarda el producto
+
+        flash('Producto agregado correctamente', 'success') #Flask  es para mostrar los mensajes desde el lado del cliente
+        return redirect(url_for('agregarProductoJson'))
+
+    else:
+        productos = Productos.objects().all()
+        return render_template('agregar.html', productos=productos)
+    
 @app.route("/consultar/<codigo>", methods=["GET"])
 def consultar(codigo):
     if "user" in session:
